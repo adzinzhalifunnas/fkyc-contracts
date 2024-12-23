@@ -6,24 +6,30 @@ import "../src/FKYCFactory.sol";
 
 contract FKYCFactoryTest is Test {
     FKYCFactory public factory;
-    address public nonOwner = address(0x1234);
 
     function setUp() public {
         factory = new FKYCFactory();
     }
 
     function testAssignRole() public {
-        factory.assignRole(nonOwner, FKYCFactory.Role.FinancialInstitution);
-
-        FKYCFactory.Role role = factory.roles(nonOwner);
-        assertEq(uint256(role), uint256(FKYCFactory.Role.FinancialInstitution));
+        factory.assignRole(address(0x1234), FKYCFactory.Role.FinancialInstitution);
+        assertTrue(factory.hasRole(address(0x1234), FKYCFactory.Role.FinancialInstitution), "Role should be assigned");
     }
 
     function testRevokeRole() public {
-        factory.assignRole(nonOwner, FKYCFactory.Role.FinancialInstitution);
-        factory.revokeRole(nonOwner);
+        factory.assignRole(address(0x1234), FKYCFactory.Role.FinancialInstitution);
+        factory.revokeRole(address(0x1234));
+        assertFalse(factory.hasRole(address(0x1234), FKYCFactory.Role.FinancialInstitution), "Role should be revoked");
+    }
 
-        FKYCFactory.Role role = factory.roles(nonOwner);
-        assertEq(uint256(role), uint256(FKYCFactory.Role.None));
+    function testUnauthorizedAssignRole() public {
+        vm.prank(address(0x1234)); // Simulate another address
+        vm.expectRevert("Ownable: caller is not the owner");
+        factory.assignRole(address(0x5678), FKYCFactory.Role.FinancialInstitution);
+    }
+
+    function testInvalidRoleAssignment() public {
+        vm.expectRevert("Invalid role");
+        factory.assignRole(address(0x1234), FKYCFactory.Role.None);
     }
 }
